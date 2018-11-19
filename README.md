@@ -2,7 +2,7 @@
 
 The tall, skinny QR (TSQR) decomposition, shown below [1], is a communication-optimal QR decomposition for matrices with many more rows than columns. 
 
-![TSQR algorithm](/images/algorithm.png")
+![](images/algorithm.png)\
 
 ### Implementations
 This decomposition is implemented in several different ways. They are contained in the following folders:
