@@ -3,7 +3,7 @@
 The tall, skinny QR (TSQR) decomposition of a matrix A, shown below [1], is a communication-optimal QR decomposition for matrices with many more rows than columns. 
 
 <p align="center">
- <img src="images/algorithm.png" width="779" height = "471">
+ <img src="images/algorithm.png" width="545" height = "330">
 </p>
 
 The matrix A is divided into _i_ block rows that satisfy m<sub>_i_</sub>>n, with each of these blocks located on a different processor. The algorithm starts by finding the QR decomposition of these individual blocks. Each processor then shares their resulting (local) R matrix with its neighbors; these matrices are combined and their QR decomposition is found. This process is repeated until the final level of the processor tree. The Q matrices are locally stored on the individal processors.
