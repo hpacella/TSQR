@@ -19,24 +19,28 @@ The complete algorithm is shown below [1].
 ### Implementations
 This decomposition is implemented in several different ways, depending on the desired final result (R on one processor, R on all processors, or R on all processors and Q implicity stored). They are contained in the following folders:
 
-  ***TSQR_one_proc_R** : This implementation computes only R. There is no redundant work done in this algorithm; the final R matrix is only contained on one processor. Any number of initial processors can be used. 
+  * **TSQR_one_proc_R** : This implementation computes only R. There is no redundant work done in this algorithm; the final R matrix is only contained on one processor. Any number of initial processors can be used, and each processor is considered to have at most one neighbor. When there are an even number of processors at a level, the processors form pairs, with one processor sending its R matrix to the other processor in the pair. When there is an odd number of processors at a level, the first (N-1) processors are again paired off, but the remaining processor does not perform any computations, instead "carrying" its current R matrix through to the next level. An example of the tree for an odd number of initial processors is shown below. 
   
-  ***TSQR_all_proc_R** : This implementation also computes only R, but the final R matrix is computed on every processor. This is accomplished via redundant work. The tree used is a butterfly all-reduction, shown below [2]. Because of this communication pattern, the initial number of processors used to subdivide the matrix must be a power of 2. 
+ <p align="center">
+ <img src="images/TSQR_one_proc.png" width="436" height = "192">
+</p>
+  
+  * **TSQR_all_proc_R** : This implementation also computes only R, but the final R matrix is computed on every processor. This is accomplished via redundant work. The tree used is a butterfly all-reduction, shown below [2]. Because of this communication pattern, the initial number of processors used to subdivide the matrix must be a power of 2. 
   
   <p align="center">
  <img src="images/butterfly_all_reduction.png" width="423" height = "319">
 </p>
   
-  ***TSQR_complete_QR** : This implementation is very similar to that in the TSQR_all_proc_R folder, but it also implicitly calculates Q. Q is made up of a series of orthogonal matrices locally computed and stored on each processor.
+  * **TSQR_complete_QR** : This implementation is very similar to that in the TSQR_all_proc_R folder, but it also implicitly calculates Q. Q is made up of a series of orthogonal matrices locally computed and stored on each processor.
 
 ### File Inputs
 
 There are several inputs that must be provided to run the TSQR code:
-    ***m** : The number of rows in the matrix A.
-    ***n** : The number of columns in the matrix A.
-    ***P** : The number of "processors" that that the matrix A is divided into.
-    ***m_vec (optional)**  : The row dimensions of the submatrices that the matrix A is divided into. If no dimensions are provided, a uniform row dimension of (A/P) will be used.
-    ***matrix input file** : An HDF5 file that contains the entries of the matrix A. If no input file is provided, then the matrix is initialized using a full-rank block matrix (for testing purposes).
+  * **m** : The number of rows in the matrix A.
+  * **n** : The number of columns in the matrix A.
+  * **P** : The number of "processors" that that the matrix A is divided into.
+  * **m_vec (optional)**  : The row dimensions of the submatrices that the matrix A is divided into. If no dimensions are provided, a uniform row dimension of (A/P) will be used.
+    * **matrix input file** : An HDF5 file that contains the entries of the matrix A. If no input file is provided, then the matrix is initialized using a full-rank block matrix (for testing purposes).
 
 These inputs are contained in the file config.rg and are stored in a terra struct. 
 
