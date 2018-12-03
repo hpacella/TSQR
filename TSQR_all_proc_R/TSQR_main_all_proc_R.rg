@@ -63,9 +63,53 @@ task main()
     end
     --h.initialize_from_file(matrix, input_matrix_file)
  else
+    --[[
     for i in mat_colors do
       h.initialize(i.y, m_vec[i.y], matrix_part[i])
     end
+    ]]--
+    --random, full rank matrixfor verification
+    matrix[f2d {x = 0, y = 0}] = 3
+    matrix[f2d {x = 0, y = 1}] = 8
+    matrix[f2d {x = 0, y = 2}] = 5
+    matrix[f2d {x = 0, y = 3}] = 5
+    matrix[f2d {x = 0, y = 4}] = 9
+    matrix[f2d {x = 0, y = 5}] = 2
+    matrix[f2d {x = 0, y = 6}] = 7
+    matrix[f2d {x = 0, y = 7}] = 7
+    matrix[f2d {x = 0, y = 8}] = 3
+    matrix[f2d {x = 0, y = 9}] = 5
+    matrix[f2d {x = 1, y = 0}] = 0
+    matrix[f2d {x = 1, y = 1}] = 0
+    matrix[f2d {x = 1, y = 2}] = 5
+    matrix[f2d {x = 1, y = 3}] = 7
+    matrix[f2d {x = 1, y = 4}] = 9
+    matrix[f2d {x = 1, y = 5}] = 1
+    matrix[f2d {x = 1, y = 6}] = 5
+    matrix[f2d {x = 1, y = 7}] = 4
+    matrix[f2d {x = 1, y = 8}] = 0
+    matrix[f2d {x = 1, y = 9}] = 3
+    matrix[f2d {x = 2, y = 0}] = 1
+    matrix[f2d {x = 2, y = 1}] = 7
+    matrix[f2d {x = 2, y = 2}] = 3
+    matrix[f2d {x = 2, y = 3}] = 5
+    matrix[f2d {x = 2, y = 4}] = 1
+    matrix[f2d {x = 2, y = 5}] = 6
+    matrix[f2d {x = 2, y = 6}] = 2
+    matrix[f2d {x = 2, y = 7}] = 6
+    matrix[f2d {x = 2, y = 8}] = 6
+    matrix[f2d {x = 2, y = 9}] = 7
+    matrix[f2d {x = 3, y = 0}] = 4
+    matrix[f2d {x = 3, y = 1}] = 0
+    matrix[f2d {x = 3, y = 2}] = 2
+    matrix[f2d {x = 3, y = 3}] = 9
+    matrix[f2d {x = 3, y = 4}] = 1
+    matrix[f2d {x = 3, y = 5}] = 8
+    matrix[f2d {x = 3, y = 6}] = 5
+    matrix[f2d {x = 3, y = 7}] = 9
+    matrix[f2d {x = 3, y = 8}] = 0
+    matrix[f2d {x = 3, y = 9}] = 4
+
   end
 
   --build R matrix
@@ -175,14 +219,23 @@ task main()
   var ts_end = c.legion_get_current_time_in_micros()
   c.printf("Total Time : %f s\n", 1e-3*(ts_end - ts_start))
 
-  
+  --[[ 
   --Print out final R solution
   c.printf("R_final:\n")
   var R_final = R_matrix_part[f2d {x = 0, y = 0}]
   for i in R_final do
     c.printf("entry = (%d, %d) value = %f\n", i.x, i.y, R_final[i])
   end
-  
+   
+  --Print out final R solution (all processors)
+  c.printf("R_final:\n")
+  for i = 0, P do
+    var R_final = R_matrix_part[f2d {x = 0, y = i}]
+    for i in R_final do
+      c.printf("entry = (%d, %d) value = %f\n", i.x, i.y, R_final[i])
+    end
+  end
+  ]]--
 
 end --end main task
 

@@ -64,11 +64,55 @@ task main()
     end
     --h.initialize_from_file(matrix, input_matrix_file) 
   else
+    --[[
     for i in mat_colors do
       h.initialize(i.y, m_vec[i.y], matrix_part[i])
     end
-  end
+    ]]--
+    --random, full rank matrixfor verification
+    matrix[f2d {x = 0, y = 0}] = 3
+    matrix[f2d {x = 0, y = 1}] = 8
+    matrix[f2d {x = 0, y = 2}] = 5
+    matrix[f2d {x = 0, y = 3}] = 5
+    matrix[f2d {x = 0, y = 4}] = 9
+    matrix[f2d {x = 0, y = 5}] = 2
+    matrix[f2d {x = 0, y = 6}] = 7
+    matrix[f2d {x = 0, y = 7}] = 7
+    matrix[f2d {x = 0, y = 8}] = 3
+    matrix[f2d {x = 0, y = 9}] = 5
+    matrix[f2d {x = 1, y = 0}] = 0
+    matrix[f2d {x = 1, y = 1}] = 0
+    matrix[f2d {x = 1, y = 2}] = 5
+    matrix[f2d {x = 1, y = 3}] = 7
+    matrix[f2d {x = 1, y = 4}] = 9
+    matrix[f2d {x = 1, y = 5}] = 1
+    matrix[f2d {x = 1, y = 6}] = 5
+    matrix[f2d {x = 1, y = 7}] = 4
+    matrix[f2d {x = 1, y = 8}] = 0
+    matrix[f2d {x = 1, y = 9}] = 3
+    matrix[f2d {x = 2, y = 0}] = 1
+    matrix[f2d {x = 2, y = 1}] = 7
+    matrix[f2d {x = 2, y = 2}] = 3
+    matrix[f2d {x = 2, y = 3}] = 5
+    matrix[f2d {x = 2, y = 4}] = 1
+    matrix[f2d {x = 2, y = 5}] = 6
+    matrix[f2d {x = 2, y = 6}] = 2
+    matrix[f2d {x = 2, y = 7}] = 6
+    matrix[f2d {x = 2, y = 8}] = 6
+    matrix[f2d {x = 2, y = 9}] = 7
+    matrix[f2d {x = 3, y = 0}] = 4
+    matrix[f2d {x = 3, y = 1}] = 0
+    matrix[f2d {x = 3, y = 2}] = 2
+    matrix[f2d {x = 3, y = 3}] = 9
+    matrix[f2d {x = 3, y = 4}] = 1
+    matrix[f2d {x = 3, y = 5}] = 8
+    matrix[f2d {x = 3, y = 6}] = 5
+    matrix[f2d {x = 3, y = 7}] = 9
+    matrix[f2d {x = 3, y = 8}] = 0
+    matrix[f2d {x = 3, y = 9}] = 4
 
+  end
+  
   --build R matrix
   var R_matrix_dim : f2d = {x = n, y = P*n}
   var R_matrix = region(ispace(f2d, R_matrix_dim), double)
@@ -97,7 +141,7 @@ task main()
   var work = region(ispace(f2d, work_dim), double)
   var work_blocks : f2d = {x = 1, y = P}
   var work_part = partition(equal, work, ispace(f2d, work_blocks)) 
-
+  
   --~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   --~~~~           parallel TSQR               ~~~~
   --~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -105,15 +149,23 @@ task main()
   --number of levels in the tree
   var L : int = cmath.ceil(cmath.log2(P)) 
   var P_dest = region(ispace(int1d, P), int)
-
+  
   --Region to store Q matrices
-  var Q_dim : f2d = {x = L*n, y = P*2*n}
-  var Q_mat = region(ispace(f2d, Q_dim), double)
-  var Q_mat_blocks : f2d = {x = L, y = P}
-  var Q_mat_part = partition(equal, Q_mat, ispace(f2d, Q_mat_blocks))
- 
-  var procs = ispace(int1d, P)
+  var Q_dim : f2d
+  var Q_mat_blocks : f2d
+  if L == 0 then --creates dummy index, Q region actually won't be used (when P = 1)
+    Q_dim = {x = n, y = P*2*n}
+    Q_mat_blocks = {x = 1, y = P}
+  else 
+    Q_dim = {x = L*n, y = P*2*n}
+    Q_mat_blocks = {x = L, y = P}
+  end
 
+  var Q_mat = region(ispace(f2d, Q_dim), double)
+  var Q_mat_part = partition(equal, Q_mat, ispace(f2d, Q_mat_blocks))
+  
+  var procs = ispace(int1d, P)
+  
   __fence(__execution, __block)
   var ts_start = c.legion_get_current_time_in_micros()
   
@@ -193,72 +245,39 @@ task main()
   __fence(__execution, __block)
   var ts_end = c.legion_get_current_time_in_micros()
   c.printf("Total Time : %f s\n", 1e-3*(ts_end - ts_start))
-  
+ 
+  --[[ 
   --Print out final R solution
   c.printf("R_final:\n")
   var R_final = R_matrix_part[f2d {x = 0, y = 0}]
   for i in R_final do
     c.printf("entry = (%d, %d) value = %f\n", i.x, i.y, R_final[i])
   end
+  
+  --Print out final Q entries
+  c.printf("Q_final matrices:\n")
+  for l = 0, (L + 1) do
+    for p = 0, P do
+
+      c.printf("L = %d, P = %d\n", l, p)
+      if l == 0 then
+        var current_matrix = matrix_part[f2d {x = 0, y = p}]
+        for i in current_matrix do
+          c.printf("entry = (%d, %d) value = %f\n", i.x, i.y, current_matrix[i])
+        end
  
+      else
+        var current_matrix = Q_mat_part[f2d {x = (l - 1), y = p}] 
+        for i in current_matrix do
+          c.printf("entry = (%d, %d) value = %f\n", i.x, i.y, current_matrix[i])
+        end
+      end
+
+    end
+  end
+  ]]--
+
 end --end main task
 
 regentlib.start(main)
 
---[[
-  c.printf("Q_initial:\n")
-  var Q_initial = matrix_part[f2d {x = 0, y = 8}]
-  for i in Q_initial do
-    c.printf("entry = (%d, %d) value = %f\n", i.x, i.y, Q_initial[i])
-  end
-]]--
---[[
-  --Print out final R solution
-  c.printf("R_final:\n")
-  var R_final = R_matrix_part[f2d {x = 0, y = 0}]
-  for i in R_final do
-    c.printf("entry = (%d, %d) value = %f\n", i.x, i.y, R_final[i])
-  end
-
-  --read input file
-  var args = c.legion_runtime_get_input_args()
-  var i = 1
-  var input_file_given = false
-  var m_vec_file_given = false
-
-  while i < args.argc do
-    if cstr.strcmp(args.argv[i], "-P") == 0 then
-      i = i + 1
-      P = c.atoi(args.argv[i])
-      if cmath.ceil(cmath.log2(P)) ~= cmath.floor((cmath.log2(P))) then 
-        c.printf("Invalid value for P! Must be a power of 2.\n")
-        c.abort() 
-     end  
-    elseif cstr.strcmp(args.argv[i], "-n") == 0 then
-      i = i + 1
-      n = c.atoi(args.argv[i])
-    elseif cstr.strcmp(args.argv[i], "-m") == 0 then
-      i = i + 1
-      m = c.atoi(args.argv[i])
-    elseif cstr.strcmp(args.argv[i], "-i") == 0 then
-      i = i + 1
-      if not file_exists(args.argv[i]) then
-        c.printf("Input file does not exist!\n")
-        c.abort()
-      end
-      var input_mat_file : &c.FILE = c.fopen(args.argv[i], "r")
-      --import_matrix(matrix, input_mat_file)
-      input_file_given = true
-    elseif cstr.strcmp(args.argv[i], "-M") == 0 then
-      i = i + 1
-      if not file_exists(args.argv[i]) then
-        c.printf("Matrix vector file does not exist!\n")
-        c.abort()
-      end
-      --c.str.strcpy(, args.argv[i])
-      m_vec_file_given = true
-    end
-    i = i + 1
-  end
-
-]]--

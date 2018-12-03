@@ -22,9 +22,9 @@ struct Config {
 terra Config:initialize()
 
   --matrix dimensions
-  self.m = 800
-  self.n = 10
-  self.P = 8
+  self.m = 10
+  self.n = 4
+  self.P = 2
 
   --matrix initialization
   self.read_input_matrix_file = false
