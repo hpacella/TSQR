@@ -69,10 +69,10 @@ terra dgeqrf_terra(y: int, m_dim : int, n_dim : int, m_overall : int, mat_block_
 
   var raw_mat = get_raw_ptr(y, 0, m_dim, n_dim, mat_block_p, mat_block_f)
  
-  var raw_tau = get_raw_ptr(y, 0, m_overall, 1, tau_block_p, tau_block_f)
+  var raw_tau = get_raw_ptr(0, y, m_overall, 1, tau_block_p, tau_block_f)
  
   var lwork = array(m_overall*n_dim) 
-  var raw_work = get_raw_ptr(y, 0, m_overall*n_dim, 1, work_block_p, work_block_f)
+  var raw_work = get_raw_ptr(0, y, m_overall*n_dim, 1, work_block_p, work_block_f)
 
   var info : int[1]
 
@@ -104,10 +104,10 @@ terra dorgqr_terra(y : int, m_dim : int, n_dim : int, m_overall : int, mat_block
   var m_ = array(m_dim)
   var raw_mat = get_raw_ptr(y, 0, m_dim, n_dim, mat_block_p, mat_block_f)
 
-  var raw_tau = get_raw_ptr(y, 0, m_overall, 1, tau_block_p, tau_block_f)
+  var raw_tau = get_raw_ptr(0, y, m_overall, 1, tau_block_p, tau_block_f)
 
   var lwork = array(m_overall*n_dim)
-  var raw_work = get_raw_ptr(y, 0, m_overall*n_dim, 1, work_block_p, work_block_f)
+  var raw_work = get_raw_ptr(0, y, m_overall*n_dim, 1, work_block_p, work_block_f)
 
   var info : int[1]
   

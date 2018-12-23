@@ -69,7 +69,7 @@ task main()
       h.initialize(i.y, m_vec[i.y], matrix_part[i])
     end
     ]]--
-    --random, full rank matrixfor verification
+    --random, full rank matrix for verification
     matrix[f2d {x = 0, y = 0}] = 3
     matrix[f2d {x = 0, y = 1}] = 8
     matrix[f2d {x = 0, y = 2}] = 5
@@ -123,15 +123,15 @@ task main()
   var R_matrix_part = partition(equal, R_matrix, ispace(f2d, r_blocks))
 
   --tau region (used to find Q matrices)
-  var tau_dim : f2d = {x = m, y = P}
+  var tau_dim : f2d = {x = P, y = m}
   var tau = region(ispace(f2d, tau_dim), double)
-  var tau_blocks : f2d = {x = 1, y = P}
+  var tau_blocks : f2d = {x = P, y = 1}
   var tau_part = partition(equal, tau, ispace(f2d, tau_blocks)) 
             
   --work region (used as scratch by BLAS subroutines)
-  var work_dim : f2d = {x = m*n, y = P}
+  var work_dim : f2d = {x = P, y = m*n}
   var work = region(ispace(f2d, work_dim), double)
-  var work_blocks : f2d = {x = 1, y = P}
+  var work_blocks : f2d = {x = P, y = 1}
   var work_part = partition(equal, work, ispace(f2d, work_blocks)) 
 
   --~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -167,7 +167,7 @@ task main()
    
         --2. Find QR factorization for the R blocks of the tree_part partition
         for y = 0, P_new do  
-          blas.dgeqrf(y, m, tree_part[f2d {x = 0, y = y}], tau_part[f2d {x = 0, y = y}], work_part[f2d {x = 0, y = y}])
+          blas.dgeqrf(y, m, tree_part[f2d {x = 0, y = y}], tau_part[f2d {x = y, y = 0}], work_part[f2d {x = y, y = 0}])
         end
 
         --3. Recover R (using original R matrix partition)
@@ -192,7 +192,7 @@ task main()
         else P_bound = P_new - 1 end
 
         for y = 0, P_bound do 
-          blas.dgeqrf(y, m, tree_part[f2d {x = 0, y = y}], tau_part[f2d {x = 0, y = y}], work_part[f2d {x = 0, y = y}])
+          blas.dgeqrf(y, m, tree_part[f2d {x = 0, y = y}], tau_part[f2d {x = y, y = 0}], work_part[f2d {x = y, y = 0}])
         end 
 
         --3. Recover R (using original R matrix partition)
@@ -217,7 +217,7 @@ task main()
 
       --find Q vectors, R entries 
       for y = 0,P do
-        blas.dgeqrf(y, m, matrix_part[f2d {x = 0, y = y}], tau_part[f2d {x = 0, y = y}], work_part[f2d {x = 0, y = y}])
+        blas.dgeqrf(y, m, matrix_part[f2d {x = 0, y = y}], tau_part[f2d {x = y, y = 0}], work_part[f2d {x = y, y = 0}])
       end
       
       --copy values to R matrix
@@ -233,14 +233,15 @@ task main()
   var ts_end = c.legion_get_current_time_in_micros()
   c.printf("Total Time : %f s\n", 1e-3*(ts_end - ts_start))
 
-  --[[  
-  --Print out final R solution
-  c.printf("R_final:\n")
-  var R_final = R_matrix_part[f2d {x = 0, y = 0}]
-  for i in R_final do
-    c.printf("entry = (%d, %d) value = %f\n", i.x, i.y, R_final[i])
+  if config.print_solution then
+  
+    --Print out final R solution
+    c.printf("R_final:\n")
+    var R_final = R_matrix_part[f2d {x = 0, y = 0}]
+    for i in R_final do
+      c.printf("entry = (%d, %d) value = %f\n", i.x, i.y, R_final[i])
+    end
   end
-  ]]--
 
 end --end main task
 regentlib.start(main)

@@ -131,15 +131,15 @@ task main()
   var R_matrix_temp_part = partition(equal, R_matrix_temp, ispace(f2d, r_temp_blocks))
 
   --tau region (used to find Q matrices)
-  var tau_dim : f2d = {x = m, y = P}
+  var tau_dim : f2d = {x = P, y = m}
   var tau = region(ispace(f2d, tau_dim), double)
-  var tau_blocks : f2d = {x = 1, y = P}
+  var tau_blocks : f2d = {x = P, y = 1}
   var tau_part = partition(equal, tau, ispace(f2d, tau_blocks)) 
             
   --work region (used as scratch by BLAS subroutines)
-  var work_dim : f2d = {x = m*n, y = P}
+  var work_dim : f2d = {x = P, y = m*n}
   var work = region(ispace(f2d, work_dim), double)
-  var work_blocks : f2d = {x = 1, y = P}
+  var work_blocks : f2d = {x = P, y = 1}
   var work_part = partition(equal, work, ispace(f2d, work_blocks)) 
   
   --~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -207,7 +207,7 @@ task main()
 
       --3. Find QR factorization for the combined R blocks on each processor
       for y in procs do  
-        blas.dgeqrf(y, m, R_matrix_temp_part[f2d {x = 0, y = y}], tau_part[f2d {x = 0, y = y}], work_part[f2d {x = 0, y = y}])
+        blas.dgeqrf(y, m, R_matrix_temp_part[f2d {x = 0, y = y}], tau_part[f2d {x = y, y = 0}], work_part[f2d {x = y, y = 0}])
       end
 
       --4. Recover R on each processor (using original R matrix partition)
@@ -217,7 +217,7 @@ task main()
 
       --5. Calculate Q matrices for this level of the tree
       for y in procs do
-        blas.dorgqr(y, m, R_matrix_temp_part[f2d {x = 0, y = y}], tau_part[f2d {x = 0, y = y}], work_part[f2d {x = 0, y = y}])
+        blas.dorgqr(y, m, R_matrix_temp_part[f2d {x = 0, y = y}], tau_part[f2d {x = y, y = 0}], work_part[f2d {x = y, y = 0}])
         h.get_Q_matrix((k-1), n, Q_mat_part[f2d {x = (k-1), y = y}], R_matrix_temp_part[f2d {x = 0, y =y}])
       end
 
@@ -225,7 +225,7 @@ task main()
 
       --find Q vectors, R entries 
       for y in procs do
-        blas.dgeqrf(y, m, matrix_part[f2d {x = 0, y = y}], tau_part[f2d {x = 0, y = y}], work_part[f2d {x = 0, y = y}])
+        blas.dgeqrf(y, m, matrix_part[f2d {x = 0, y = y}], tau_part[f2d {x = y, y = 0}], work_part[f2d {x = y, y = 0}])
       end
       
       --copy values to R matrix
@@ -235,7 +235,7 @@ task main()
 
       --find Q matrices
       for y in procs do
-        blas.dorgqr(y, m, matrix_part[f2d {x = 0, y = y}], tau_part[f2d {x = 0, y = y}], work_part[f2d {x = 0, y = y}])
+        blas.dorgqr(y, m, matrix_part[f2d {x = 0, y = y}], tau_part[f2d {x = y, y = 0}], work_part[f2d {x = y, y = 0}])
       end
 
     end
@@ -246,37 +246,39 @@ task main()
   var ts_end = c.legion_get_current_time_in_micros()
   c.printf("Total Time : %f s\n", 1e-3*(ts_end - ts_start))
  
-  --[[ 
-  --Print out final R solution
-  c.printf("R_final:\n")
-  var R_final = R_matrix_part[f2d {x = 0, y = 0}]
-  for i in R_final do
-    c.printf("entry = (%d, %d) value = %f\n", i.x, i.y, R_final[i])
+  if config.print_solution then
+ 
+    --Print out final R solution
+    c.printf("R_final:\n")
+    var R_final = R_matrix_part[f2d {x = 0, y = 0}]
+    for i in R_final do
+      c.printf("entry = (%d, %d) value = %f\n", i.x, i.y, R_final[i])
+    end
+  
+    --Print out final Q entries
+    c.printf("Q_final matrices:\n")
+    for l = 0, (L + 1) do
+      for p = 0, P do
+
+        c.printf("L = %d, P = %d\n", l, p)
+        if l == 0 then
+          var current_matrix = matrix_part[f2d {x = 0, y = p}]
+          for i in current_matrix do
+            c.printf("entry = (%d, %d) value = %f\n", i.x, i.y, current_matrix[i])
+          end
+ 
+        else
+          var current_matrix = Q_mat_part[f2d {x = (l - 1), y = p}] 
+          for i in current_matrix do
+            c.printf("entry = (%d, %d) value = %f\n", i.x, i.y, current_matrix[i])
+          end
+        end
+
+      end
+    end
+
   end
   
-  --Print out final Q entries
-  c.printf("Q_final matrices:\n")
-  for l = 0, (L + 1) do
-    for p = 0, P do
-
-      c.printf("L = %d, P = %d\n", l, p)
-      if l == 0 then
-        var current_matrix = matrix_part[f2d {x = 0, y = p}]
-        for i in current_matrix do
-          c.printf("entry = (%d, %d) value = %f\n", i.x, i.y, current_matrix[i])
-        end
- 
-      else
-        var current_matrix = Q_mat_part[f2d {x = (l - 1), y = p}] 
-        for i in current_matrix do
-          c.printf("entry = (%d, %d) value = %f\n", i.x, i.y, current_matrix[i])
-        end
-      end
-
-    end
-  end
-  ]]--
-
 end --end main task
 
 regentlib.start(main)

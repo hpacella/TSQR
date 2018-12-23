@@ -16,7 +16,9 @@ struct Config {
   input_matrix_file : &int8,
   nonuniform_mat_vec : bool,
   --mat_vec_array : int[P],
-
+  
+  --options for printing solution
+  print_solution : bool,
 }
 
 terra Config:initialize()
@@ -24,14 +26,17 @@ terra Config:initialize()
   --matrix dimensions
   self.m = 10
   self.n = 4
-  self.P = 2
+  self.P = 1
 
   --matrix initialization
   self.read_input_matrix_file = false
   --self.input_matrix_file = 
+
   self.nonuniform_mat_vec = false
   --self.mat_vec_file = array()
 
+  --printing solution 
+  self.print_solution = false
 end
 
 terra Config:checks()
